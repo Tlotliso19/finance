@@ -9,21 +9,22 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Create engine with SSL settings
+# Create engine with proper SSL and connection pooling settings
 engine = create_engine(
     DATABASE_URL,
     connect_args={
-        "sslmode": "require"
-    }
+        "sslmode": "require",
+        "connect_timeout": 30
+    },
+    pool_size=5,
+    max_overflow=10
 )
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create base class for models
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 class Portfolio(Base):
     __tablename__ = "portfolios"
-
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, default="My Portfolio")
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -31,18 +32,14 @@ class Portfolio(Base):
 
 class Asset(Base):
     __tablename__ = "assets"
-
     id = Column(Integer, primary_key=True, index=True)
     portfolio_id = Column(Integer, ForeignKey("portfolios.id"))
     symbol = Column(String, index=True)
     value = Column(Float)
     created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Store additional asset info
     name = Column(String)
     sector = Column(String)
     currency = Column(String)
-
     portfolio = relationship("Portfolio", back_populates="assets")
 
 def init_db():
@@ -54,8 +51,13 @@ def init_db():
         raise
 
 def get_db():
-    db = SessionLocal()
+    """Get database session with proper error handling"""
+    db = None
     try:
-        yield db
-    finally:
-        db.close()
+        db = SessionLocal()
+        return db
+    except Exception as e:
+        print(f"Database connection error: {str(e)}")
+        if db:
+            db.close()
+        raise

@@ -26,8 +26,10 @@ def get_or_create_portfolio(db: Session) -> Portfolio:
     return portfolio
 
 def main():
-    # Get database session
-    with contextlib.contextmanager(get_db)() as db:
+    try:
+        # Get database session
+        db = get_db()
+
         # Get or create default portfolio
         portfolio = get_or_create_portfolio(db)
 
@@ -52,6 +54,11 @@ def main():
 
         # Render main dashboard
         render_dashboard(selected_view, portfolio_dict)
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
+    finally:
+        if 'db' in locals():
+            db.close()
 
 if __name__ == "__main__":
     main()
