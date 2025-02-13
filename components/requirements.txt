@@ -1,0 +1,7 @@
+yfinance
+pandas
+datetime
+sqlalchemy
+numpy
+scipy 
+streamlit
