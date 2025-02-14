@@ -6,3 +6,4 @@ numpy
 scipy 
 streamlit
 psycopg2
+plotly
